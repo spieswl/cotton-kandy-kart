@@ -1,5 +1,5 @@
-#include<xc.h>                          // processor SFR definitions
-#include<sys/attribs.h>                 // __ISR macro
+#include <xc.h>                         // processor SFR definitions
+#include <sys/attribs.h>                // __ISR macro
 
 // DEVCFG0
 #pragma config DEBUG = OFF              // no debugging
@@ -60,8 +60,19 @@ int main() {
 
     __builtin_enable_interrupts();
 
-    while(1) {
-	// use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
-	// remember the core timer runs at half the sysclk
+    while(1)
+    {
+        // use _CP0_SET_COUNT(0) and _CP0_GET_COUNT() to test the PIC timing
+        // remember the core timer runs at half the sysclk
+        _CP0_SET_COUNT(0);
+        
+        while (_CP0_GET_COUNT() < 12000)    // Wait
+        {
+            while(!PORTBbits.RB4)
+            {
+                LATAbits.LATA4 = 0;     // Hold LATA pin 4 to LOW
+            }
+        }
+        LATAINV = 0x10;                 // Invert LATA pin 4
     }
 }
