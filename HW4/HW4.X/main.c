@@ -1,5 +1,6 @@
 #include <xc.h>                         // processor SFR definitions
 #include <sys/attribs.h>                // __ISR macro
+#include <math.h>
 #include "spi.h"                        // SPI interface
 
 // DEVCFG0
@@ -38,6 +39,34 @@
 #pragma config FVBUSONIO = ON           // USB BUSON controlled by USB module
 
 
+int get_sinusoid(int counter)
+{
+    int voltage;
+    double phase_calc;
+    
+    phase_calc = sin(2.0 * M_PI * counter / 100);
+    
+    voltage = 512 + (511 * phase_calc);
+    
+    return voltage;
+}
+
+int get_triang(int counter)
+{
+    int voltage = 0;
+    
+    if(counter < 100)
+    {
+        voltage = (int) ((float) counter * (1023.0 / 100.0));
+    }
+    else if (counter < 200)
+    {
+        voltage = (int) ((float) (200 - counter) * (1023.0 / 100.0));
+    }
+    
+    return voltage;
+}
+
 void set_voltage(unsigned char channel, int voltage)
 {
     unsigned char byte1, byte2;
@@ -61,8 +90,6 @@ void set_voltage(unsigned char channel, int voltage)
 int main() {
 
     __builtin_disable_interrupts();
-
-    init_SPI1();
     
     // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
     __builtin_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, 0xa4210583);
@@ -76,28 +103,32 @@ int main() {
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
 
-    // do your TRIS and LAT commands here
-    TRISBbits.TRISB4 = 1;               // Sinking input
-    TRISAbits.TRISA4 = 0;               // Sourcing output
-    LATAbits.LATA4 = 1;
-
+    init_SPI1();
+    
     __builtin_enable_interrupts();
     
-    set_voltage(0, 0);
+    int count = 0;
+    int v_sinusoid, v_triang;
     
-    set_voltage(1, 0);
-
     while(1)
     {
         _CP0_SET_COUNT(0);
         
-        while (_CP0_GET_COUNT() < 12000)    // Wait
+        count++;
+        if(count >= 200)
         {
-            while(!PORTBbits.RB4)
-            {
-                LATAbits.LATA4 = 0;     // Hold LATA pin 4 to LOW
-            }
+            count = 0;
         }
-        LATAINV = 0x10;                 // Invert LATA pin 4
+        
+        v_sinusoid = get_sinusoid(count);
+        v_triang = get_triang(count);
+        
+        set_voltage(0, v_sinusoid);
+        set_voltage(1, v_triang);
+        
+        while(_CP0_GET_COUNT() < 48000000/2/1000)
+        {
+            ;
+        }
     }
 }
