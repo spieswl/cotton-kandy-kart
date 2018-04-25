@@ -50,16 +50,63 @@ void LCD_drawChar(unsigned short x, unsigned short y, unsigned char character, u
     {
         pixels = ASCII[sel][col];
         
-        for(row = 0; row < 8; row++)
+        for(row = 0; row < 8; ++row)
         {
-            if(pixels >> row & 1)   { LCD_drawPixel(x+col, y+row, color1); }
-            else                    { LCD_drawPixel(x+col, y+row, color2); }
+            if(x+col < 128)
+            {
+                if(pixels >> row & 1)   { LCD_drawPixel(x+col, y+row, color1); }
+                else                    { LCD_drawPixel(x+col, y+row, color2); }
+            }
         }
     }
 }
 
+void LCD_drawString(unsigned short x, unsigned short y, unsigned char* message, unsigned short color1, unsigned short color2)
+{
+    unsigned short count = 0;
+    unsigned short offset = 0;
+    
+    while(message[count])
+    {
+        LCD_drawChar(x+offset, y, message[count], color1, color2);
+        
+        count++;
+        offset += 5;
+    }
+}
+
+void LCD_drawProgressBar(unsigned short x, unsigned short y, unsigned short h, unsigned short percentage)
+{
+    unsigned short height = 0;
+    unsigned short length = 0;
+    
+    for(length = 0; length < 100; length++)
+    {
+        for(height = 0; height < h; ++height)
+        {
+            if(length < percentage)     { LCD_drawPixel(x+length,y+height,GREEN); }
+            else                        { LCD_drawPixel(x+length,y+height,RED); }
+        }
+    }
+}
+
+void LCD_drawFPS(unsigned short x, unsigned short y)
+{
+    unsigned char message[30];
+    int elapsed = _CP0_GET_COUNT();
+    float fps = (24000000.0 / (float) elapsed);
+    
+    sprintf(message, "FPS : %.4f", fps);
+    LCD_drawString(x,y,message,WHITE,BLACK);
+}
+
 int main() {
 
+    // String container
+    unsigned char message[30];
+    unsigned short completion = 0;
+    
+    ////////////////////////////////////////////////////////////
     __builtin_disable_interrupts();
     
     // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
@@ -73,6 +120,7 @@ int main() {
 
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
+    ////////////////////////////////////////////////////////////
     
     // do your TRIS and LAT commands here
     TRISBbits.TRISB4 = 1;               // Sinking input
@@ -90,26 +138,29 @@ int main() {
     while(1)
     {
         _CP0_SET_COUNT(0);
-
-        LCD_drawPixel(10,10,RED);
-        LCD_drawPixel(30,10,GREEN);
-        LCD_drawPixel(10,30,BLUE);
         
-        LCD_drawChar(50,10,'A',WHITE,BLACK);
-        LCD_drawChar(55,10,'B',BLUE,BLACK);
-        LCD_drawChar(60,10,'C',RED,BLACK);
-        LCD_drawChar(65,10,'D',MAGENTA,BLACK);
+        // Text string & progress bar setup
+        sprintf(message,"Hello World %d!   ", completion);
+        LCD_drawString(10,32,message,WHITE,BLACK);
+        LCD_drawProgressBar(10,44,8,completion);
+        LCD_drawFPS(10,100);
         
-        
-                
-        while(_CP0_GET_COUNT() < 4800000)    // Wait some amount of time
+        // LED Heartbeat Code
+        while(_CP0_GET_COUNT() < 4800000/2)    // Wait some amount of time
         {
             while(!PORTBbits.RB4)
             {
                 LATAbits.LATA4 = 0;     // Hold LATA pin 4 to LOW
             }
         }
-        
         LATAINV = 0x10;                 // Invert LATA pin 4
+        
+        // Progress bar accumulator
+        completion++;
+
+        if(completion > 100)
+        {
+            completion = 0;
+        }
     }
 }
