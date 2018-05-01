@@ -116,17 +116,21 @@ int main() {
         
         // Display IMU readings
         //sprintf(string_disp, "Temperature : %d   ", temperature);
-        //LCD_drawString(10, 45, string_disp, WHITE, BLACK);
+        //LCD_drawString(10, 25, string_disp, WHITE, BLACK);
         //sprintf(string_disp, "Gyro (X) : %d   ", gyroX);
-        //LCD_drawString(10, 55, string_disp, WHITE, BLACK);
+        //LCD_drawString(10, 35, string_disp, WHITE, BLACK);
         //sprintf(string_disp, "Gyro (Y) : %d   ", gyroY);
-        //LCD_drawString(10, 65, string_disp, WHITE, BLACK);
-        //sprintf(string_disp, "Gyro (Z) : %d   ", gyroZ);
-        //LCD_drawString(10, 75, string_disp, WHITE, BLACK);
-        //sprintf(string_disp, "Accel (X) : %d   ", accelX);
         //LCD_drawString(10, 45, string_disp, WHITE, BLACK);
-        //sprintf(string_disp, "Accel (Y) : %d   ", accelY);
+        //sprintf(string_disp, "Gyro (Z) : %d   ", gyroZ);
         //LCD_drawString(10, 55, string_disp, WHITE, BLACK);
+        sprintf(string_disp, "Accel (X):");
+        LCD_drawString(10, 25, string_disp, WHITE, BLACK);
+        sprintf(string_disp, "%d    ", accelX);
+        LCD_drawString(10, 35, string_disp, WHITE, BLACK);
+        sprintf(string_disp, "Accel (Y):");
+        LCD_drawString(10, 45, string_disp, WHITE, BLACK);
+        sprintf(string_disp, "%d    ", accelY);
+        LCD_drawString(10, 55, string_disp, WHITE, BLACK);
         //sprintf(string_disp, "Accel (Z) : %d   ", accelZ);
         //LCD_drawString(10, 65, string_disp, WHITE, BLACK);
         

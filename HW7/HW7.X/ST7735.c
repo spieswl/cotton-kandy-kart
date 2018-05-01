@@ -378,26 +378,67 @@ void LCD_drawImuFeedbackBars(signed short x_accel, signed short y_accel)
             }
         }
     }
+    else
+    {
+        for(length = 0; length < 50; ++length)
+        {
+            LCD_drawPixel(x_cent+length+4, y_cent,      BLUE);
+            LCD_drawPixel(x_cent+length+4, y_cent+1,    BLUE);
+            LCD_drawPixel(x_cent+length+4, y_cent+2,    BLUE);
+            LCD_drawPixel(x_cent+length+4, y_cent+3,    BLUE);
+            
+            LCD_drawPixel(x_cent-length-1, y_cent,      BLUE);
+            LCD_drawPixel(x_cent-length-1, y_cent+1,    BLUE);
+            LCD_drawPixel(x_cent-length-1, y_cent+2,    BLUE);
+            LCD_drawPixel(x_cent-length-1, y_cent+3,    BLUE);
+        }
+    }
     
     // "Y" Acceleration
-}
-
-/*
-void LCD_drawProgressBar(unsigned short x, unsigned short y, unsigned short h, unsigned short percentage)
-{
-    unsigned short height = 0;
-    unsigned short length = 0;
-    
-    for(length = 0; length < 100; length++)
+    if(y_range > 0)         // Positive case (+ side bar)
     {
-        for(height = 0; height < h; ++height)
+        for(length = 0; length < 50; ++length)
         {
-            if(length < percentage)     { LCD_drawPixel(x+length,y+height,GREEN); }
-            else                        { LCD_drawPixel(x+length,y+height,RED); }
+            for(height = 0; height < 4; ++height)
+            {
+                if(length <= y_range)   { LCD_drawPixel(x_cent+height, y_cent-length, YELLOW); }
+                else                    { LCD_drawPixel(x_cent+height, y_cent-length, BLUE); }
+                
+                // This constantly clears the opposite side measurement bar
+                LCD_drawPixel(x_cent+height, y_cent+length+4, BLUE);
+            }
+        }
+    }
+    else if(y_range < 0)    // Negative case (- side bar)
+    {
+        for(length = -50; length < 0; ++length)
+        {
+            for(height = 0; height < 4; ++height)
+            {
+                if(length >= y_range)   { LCD_drawPixel(x_cent+height, y_cent-length+3, YELLOW); }
+                else                    { LCD_drawPixel(x_cent+height, y_cent-length+3, BLUE); }
+                
+                // This constantly clears the opposite side measurement bar
+                LCD_drawPixel(x_cent+height, y_cent-length-51, BLUE);
+            }
+        }
+    }
+    else
+    {
+        for(length = 0; length < 50; ++length)
+        {
+            LCD_drawPixel(x_cent,   y_cent-length-1,    BLUE);
+            LCD_drawPixel(x_cent+1, y_cent-length-1,    BLUE);
+            LCD_drawPixel(x_cent+2, y_cent-length-1,    BLUE);
+            LCD_drawPixel(x_cent+3, y_cent-length-1,    BLUE);
+            
+            LCD_drawPixel(x_cent,   y_cent+length+4,    BLUE);
+            LCD_drawPixel(x_cent+1, y_cent+length+4,    BLUE);
+            LCD_drawPixel(x_cent+2, y_cent+length+4,    BLUE);
+            LCD_drawPixel(x_cent+3, y_cent+length+4,    BLUE);
         }
     }
 }
-*/
 
 void LCD_drawFPS(unsigned short x, unsigned short y)
 {
