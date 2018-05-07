@@ -56,6 +56,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "app.h"
 #include <stdio.h>
 #include <xc.h>
+#include "LSM6DS33.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -65,8 +66,13 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 uint8_t APP_MAKE_BUFFER_DMA_READY dataOut[APP_READ_BUFFER_SIZE];
 uint8_t APP_MAKE_BUFFER_DMA_READY readBuffer[APP_READ_BUFFER_SIZE];
-int len, i = 0;
+int len, i = 100;
 int startTime = 0; // to remember the loop time
+
+unsigned char sensor_id[1];
+unsigned char sensor_data[14];
+
+signed short temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
 
 // *****************************************************************************
 /* Application Data
@@ -90,9 +96,6 @@ APP_DATA appData;
 // Section: Application Callback Functions
 // *****************************************************************************
 // *****************************************************************************
-
-/* TODO:  Add any necessary callback functions.
- */
 
 /*******************************************************
  * USB CDC Device Events - Application Event Handler
@@ -340,7 +343,10 @@ void APP_Initialize(void) {
     /* Set up the read buffer */
     appData.readBuffer = &readBuffer[0];
 
-    /* PUT YOUR LCD, IMU, AND PIN INITIALIZATIONS HERE */
+    /* Initialize IMU (and I2C2 interface) */
+    ANSELBbits.ANSB2 = 0;
+    ANSELBbits.ANSB3 = 0;
+    IMU_init();
 
     startTime = _CP0_GET_COUNT();
 }
@@ -427,10 +433,10 @@ void APP_Tasks(void) {
              * The isReadComplete flag gets updated in the CDC event handler. */
 
             /* WAIT FOR 5HZ TO PASS OR UNTIL A LETTER IS RECEIVED */
-            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 5)) {
+            /* NOTE : Changed from 5Hz to 100Hz (wspies) */
+            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 100)) {
                 appData.state = APP_STATE_SCHEDULE_WRITE;
             }
-
 
             break;
 
@@ -442,16 +448,33 @@ void APP_Tasks(void) {
             }
 
             /* Setup the write */
-
             appData.writeTransferHandle = USB_DEVICE_CDC_TRANSFER_HANDLE_INVALID;
             appData.isWriteComplete = false;
             appData.state = APP_STATE_WAIT_FOR_WRITE_COMPLETE;
-
-            /* PUT THE TEXT YOU WANT TO SEND TO THE COMPUTER IN dataOut
-            AND REMEMBER THE NUMBER OF CHARACTERS IN len */
-            /* THIS IS WHERE YOU CAN READ YOUR IMU, PRINT TO THE LCD, ETC */
-            len = sprintf(dataOut, "%d\r\n", i);
-            i++; // increment the index so we see a change in the text
+            
+            /* Start IMU reading and data processing */
+            if(i < 100)
+            {   
+                IMU_read_mult(0x20, sensor_data, 14);
+                
+                // NOTE: Flipped the sign of all sensor readings to make it "agree" with my expectations
+                temperature = -1*(combine_sensor_data(sensor_data[0], sensor_data[1]));
+                gyroX = -1*(combine_sensor_data(sensor_data[2], sensor_data[3]));
+                gyroY = -1*(combine_sensor_data(sensor_data[4], sensor_data[5]));
+                gyroZ = -1*(combine_sensor_data(sensor_data[6], sensor_data[7]));
+                accelX = -1*(combine_sensor_data(sensor_data[8], sensor_data[9]));
+                accelY = -1*(combine_sensor_data(sensor_data[10], sensor_data[11]));
+                accelZ = -1*(combine_sensor_data(sensor_data[12], sensor_data[13]));
+                
+                len = sprintf(dataOut, "%d : %d %d %d %d %d %d %d\r\n", (i+1), temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+                i++;    // increment the index so we see a change in the text
+            }
+            else
+            {
+                len = 1;
+                dataOut[0] = 0;
+            }
+            
             /* IF A LETTER WAS RECEIVED, ECHO IT BACK SO THE USER CAN SEE IT */
             if (appData.isReadComplete) {
                 USB_DEVICE_CDC_Write(USB_DEVICE_CDC_INDEX_0,
