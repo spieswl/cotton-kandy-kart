@@ -433,12 +433,13 @@ void APP_Tasks(void) {
              * The isReadComplete flag gets updated in the CDC event handler. */
 
             /* WAIT FOR 5HZ TO PASS OR UNTIL A LETTER IS RECEIVED */
-            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 5)) {
+            // Updated to 100 Hz (wspies)
+            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 100)) {
                 appData.state = APP_STATE_SCHEDULE_WRITE;
             }
             
-            /* Read the IMU at 5 Hz */
-            if (_CP0_GET_COUNT() - startTime > (48000000 / 2 / 5))
+            // Read the IMU at 100 Hz
+            if (_CP0_GET_COUNT() - startTime > (48000000 / 2 / 100))
             {
                 IMU_read_mult(0x20, sensor_data, 14);
             }
@@ -460,7 +461,7 @@ void APP_Tasks(void) {
             // Start IMU data processing
             if(k < 100)
             {
-                // NOTE: Flipped the sign of all sensor readings to make it "agree" with my expectations
+                // NOTE: Flipped the sign of (almost) all sensor readings to make it "agree" with my expectations
                 temperature = combine_sensor_data(sensor_data[0], sensor_data[1]);
                 gyroX = -1*(combine_sensor_data(sensor_data[2], sensor_data[3]));
                 gyroY = -1*(combine_sensor_data(sensor_data[4], sensor_data[5]));
