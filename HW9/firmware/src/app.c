@@ -66,7 +66,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 uint8_t APP_MAKE_BUFFER_DMA_READY dataOut[APP_READ_BUFFER_SIZE];
 uint8_t APP_MAKE_BUFFER_DMA_READY readBuffer[APP_READ_BUFFER_SIZE];
-int len, i = 100;
+int len, k = 100;
 int startTime = 0; // to remember the loop time
 
 unsigned char sensor_id[1];
@@ -408,11 +408,11 @@ void APP_Tasks(void) {
                         &appData.readTransferHandle, appData.readBuffer,
                         APP_READ_BUFFER_SIZE);
 
-                        /* AT THIS POINT, appData.readBuffer[0] CONTAINS A LETTER
-                        THAT WAS SENT FROM THE COMPUTER */
-                        /* YOU COULD PUT AN IF STATEMENT HERE TO DETERMINE WHICH LETTER
-                        WAS RECEIVED (USUALLY IT IS THE NULL CHARACTER BECAUSE NOTHING WAS
-                      TYPED) */
+                /* Trigger data processing sequence on a received 'r' */
+                if(readBuffer[0] == 'r')
+                {
+                    k = 0;
+                }
 
                 if (appData.readTransferHandle == USB_DEVICE_CDC_TRANSFER_HANDLE_INVALID) {
                     appData.state = APP_STATE_ERROR;
@@ -433,9 +433,14 @@ void APP_Tasks(void) {
              * The isReadComplete flag gets updated in the CDC event handler. */
 
             /* WAIT FOR 5HZ TO PASS OR UNTIL A LETTER IS RECEIVED */
-            /* NOTE : Changed from 5Hz to 100Hz (wspies) */
-            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 100)) {
+            if (appData.isReadComplete || _CP0_GET_COUNT() - startTime > (48000000 / 2 / 5)) {
                 appData.state = APP_STATE_SCHEDULE_WRITE;
+            }
+            
+            /* Read the IMU at 5 Hz */
+            if (_CP0_GET_COUNT() - startTime > (48000000 / 2 / 5))
+            {
+                IMU_read_mult(0x20, sensor_data, 14);
             }
 
             break;
@@ -452,13 +457,11 @@ void APP_Tasks(void) {
             appData.isWriteComplete = false;
             appData.state = APP_STATE_WAIT_FOR_WRITE_COMPLETE;
             
-            /* Start IMU reading and data processing */
-            if(i < 100)
-            {   
-                IMU_read_mult(0x20, sensor_data, 14);
-                
+            // Start IMU data processing
+            if(k < 100)
+            {
                 // NOTE: Flipped the sign of all sensor readings to make it "agree" with my expectations
-                temperature = -1*(combine_sensor_data(sensor_data[0], sensor_data[1]));
+                temperature = combine_sensor_data(sensor_data[0], sensor_data[1]);
                 gyroX = -1*(combine_sensor_data(sensor_data[2], sensor_data[3]));
                 gyroY = -1*(combine_sensor_data(sensor_data[4], sensor_data[5]));
                 gyroZ = -1*(combine_sensor_data(sensor_data[6], sensor_data[7]));
@@ -466,8 +469,16 @@ void APP_Tasks(void) {
                 accelY = -1*(combine_sensor_data(sensor_data[10], sensor_data[11]));
                 accelZ = -1*(combine_sensor_data(sensor_data[12], sensor_data[13]));
                 
-                len = sprintf(dataOut, "%d : %d %d %d %d %d %d %d\r\n", (i+1), temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
-                i++;    // increment the index so we see a change in the text
+                // First line presentation cleanup
+                if(k == 0)
+                {
+                    len = sprintf(dataOut, "\r\n%d : %d %d %d %d %d %d %d\r\n", (k+1), temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+                }
+                else
+                {
+                    len = sprintf(dataOut, "%d : %d %d %d %d %d %d %d\r\n", (k+1), temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+                }
+                k++;    // increment the index so we see a change in the text
             }
             else
             {
