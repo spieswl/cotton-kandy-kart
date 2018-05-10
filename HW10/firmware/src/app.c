@@ -67,14 +67,15 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 uint8_t APP_MAKE_BUFFER_DMA_READY dataOut[APP_READ_BUFFER_SIZE];
 uint8_t APP_MAKE_BUFFER_DMA_READY readBuffer[APP_READ_BUFFER_SIZE];
-int len, k = 100;
+int len, k = 10, link;
 int startTime = 0; // to remember the loop time
 
 unsigned char sensor_id[1];
 unsigned char sensor_data[14];
 
 signed short temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ;
-signed short accelZ_raw[100];
+signed short accelZ_raw[10];
+signed short MAF_results, FIR_results, IIR_results, IIR_last;
 
 // *****************************************************************************
 /* Application Data
@@ -351,7 +352,14 @@ void APP_Initialize(void) {
     IMU_init();
     
     // Clear rawData array (set all to zeroes)
-    clear_data_array(accelZ_raw, 100);
+    clear_data_array(accelZ_raw, 10);
+    
+    // Other initializations
+    link = 0;
+    MAF_results = 0;
+    FIR_results = 0;
+    IIR_results = 0;
+    IIR_last = 0;
 
     startTime = _CP0_GET_COUNT();
 }
@@ -444,9 +452,27 @@ void APP_Tasks(void) {
             }
             
             // Read the IMU at 100 Hz (WSpies)
+            // Enqueue last reading into accelZ_raw array
             if (_CP0_GET_COUNT() - startTime > (48000000 / 2 / 100))
             {
                 IMU_read_mult(0x20, sensor_data, 14);
+                
+                // PROCESS DATA - Start IMU data processing (WSpies)
+                // NOTE: Flipped the sign of (almost) all sensor readings to make it "agree" with my expectations (WSpies)
+                temperature = combine_sensor_data(sensor_data[0], sensor_data[1]);
+                gyroX = -1*(combine_sensor_data(sensor_data[2], sensor_data[3]));
+                gyroY = -1*(combine_sensor_data(sensor_data[4], sensor_data[5]));
+                gyroZ = -1*(combine_sensor_data(sensor_data[6], sensor_data[7]));
+                accelX = -1*(combine_sensor_data(sensor_data[8], sensor_data[9]));
+                accelY = -1*(combine_sensor_data(sensor_data[10], sensor_data[11]));
+                accelZ = -1*(combine_sensor_data(sensor_data[12], sensor_data[13]));
+                
+                // Start at the end, slide all values down one spot every time
+                for(link = 10; link > 1; --link)
+                {
+                    accelZ_raw[link-1] = accelZ_raw[link-2];
+                }
+                accelZ_raw[0] = accelZ;
             }
 
             break;
@@ -463,26 +489,21 @@ void APP_Tasks(void) {
             appData.isWriteComplete = false;
             appData.state = APP_STATE_WAIT_FOR_WRITE_COMPLETE;
             
-            // Start IMU data processing (WSpies)
-            if(k < 100)
-            {                
-                // NOTE: Flipped the sign of (almost) all sensor readings to make it "agree" with my expectations (WSpies)
-                temperature = combine_sensor_data(sensor_data[0], sensor_data[1]);
-                gyroX = -1*(combine_sensor_data(sensor_data[2], sensor_data[3]));
-                gyroY = -1*(combine_sensor_data(sensor_data[4], sensor_data[5]));
-                gyroZ = -1*(combine_sensor_data(sensor_data[6], sensor_data[7]));
-                accelX = -1*(combine_sensor_data(sensor_data[8], sensor_data[9]));
-                accelY = -1*(combine_sensor_data(sensor_data[10], sensor_data[11]));
-                accelZ = -1*(combine_sensor_data(sensor_data[12], sensor_data[13]));
+            if(k < 10)
+            {
+                MAF_results = movAvgFilter(accelZ_raw, 10);
+                FIR_results = finImpRespFilter(accelZ_raw, 10);
+                IIR_results = infImpRespFilter(accelZ_raw, IIR_last, 80, 20);   // Weights must add up to 100
+                IIR_last = IIR_results;
                 
-                // First line presentation cleanup (WSpies)
+                // TRANSMIT DATA - First line presentation cleanup (WSpies)
                 if(k == 0)
                 {
-                    len = sprintf(dataOut, "\r\n%d : %d %d %d %d %d %d %d\r\n", (k+1), temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+                    len = sprintf(dataOut, "\r\n%d : %d %d %d %d\r\n", (k+1), accelZ, MAF_results, IIR_results, FIR_results);
                 }
                 else
                 {
-                    len = sprintf(dataOut, "%d : %d %d %d %d %d %d %d\r\n", (k+1), temperature, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+                    len = sprintf(dataOut, "%d : %d %d %d %d\r\n", (k+1), accelZ, MAF_results, IIR_results, FIR_results);
                 }
                 k++;    // increment the index so we see a change in the text
             }

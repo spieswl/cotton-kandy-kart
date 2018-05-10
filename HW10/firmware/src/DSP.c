@@ -42,7 +42,7 @@ signed short infImpRespFilter(signed short * data, signed short priorValue, sign
 {
     signed short result = 0;
     
-    result = (weightOld * priorValue) + (weightNew * data[0]);
+    result = ((weightOld * priorValue) + (weightNew * data[0])) / 100;
     
     return result;
 }
