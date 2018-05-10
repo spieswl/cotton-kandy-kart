@@ -468,6 +468,7 @@ void APP_Tasks(void) {
                 accelZ = -1*(combine_sensor_data(sensor_data[12], sensor_data[13]));
                 
                 // Start at the end, slide all values down one spot every time
+                // Last value in the array always gets obliterated
                 for(link = 10; link > 1; --link)
                 {
                     accelZ_raw[link-1] = accelZ_raw[link-2];
@@ -493,7 +494,7 @@ void APP_Tasks(void) {
             {
                 MAF_results = movAvgFilter(accelZ_raw, 10);
                 FIR_results = finImpRespFilter(accelZ_raw, 10);
-                IIR_results = infImpRespFilter(accelZ_raw, IIR_last, 80, 20);   // Weights must add up to 100
+                IIR_results = infImpRespFilter(accelZ_raw, IIR_last, 0.8, 0.2); // Weights must add up to 1
                 IIR_last = IIR_results;
                 
                 // TRANSMIT DATA - First line presentation cleanup (WSpies)

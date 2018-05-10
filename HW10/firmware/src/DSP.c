@@ -21,28 +21,28 @@ signed short movAvgFilter(signed short * data, unsigned char sampCount)
         result += data[index];
     }
     
-    return result;
+    return (result / sampCount);
 }
 
 signed short finImpRespFilter(signed short * data, unsigned char sampCount)
 {
     unsigned char index;
-    signed short weights[8] = {0,0,0,0,0,0,0,0};
-    signed short result = 0;
+    float weights[10] = {0.0022, 0.0174, 0.0737, 0.1662, 0.2405, 0.2405, 0.1662, 0.0737, 0.0174, 0.0022};
+    float result = 0;
     
     for(index = 0; index < sampCount; ++index)
     {
-        result += (weights[index] * data[index]);
+        result += (weights[index] * (float) data[index]);
     }
     
-    return result;
+    return ((signed short) result);
 }
 
-signed short infImpRespFilter(signed short * data, signed short priorValue, signed short weightOld, signed short weightNew)
+signed short infImpRespFilter(signed short * data, signed short priorValue, float weightOld, float weightNew)
 {
-    signed short result = 0;
+    float result = 0.0;
     
-    result = ((weightOld * priorValue) + (weightNew * data[0])) / 100;
+    result = ((weightOld * (float) priorValue) + (weightNew * (float) data[0]));
     
-    return result;
+    return ((signed short) result);
 }
