@@ -292,6 +292,7 @@ void APP_Initialize(void) {
 
 void APP_Tasks(void) {
     static uint8_t movement_length = 0;
+    unsigned char HID_msg_counter = 0;
 
     /* Check the application's current state. */
     switch (appData.state) {
@@ -338,8 +339,20 @@ void APP_Tasks(void) {
             if (movement_length > 50) {
                 appData.mouseButton[0] = MOUSE_BUTTON_STATE_RELEASED;
                 appData.mouseButton[1] = MOUSE_BUTTON_STATE_RELEASED;
-                appData.xCoordinate = (int8_t) (accelZ / 1000);
-                appData.yCoordinate = (int8_t) (accelX / 1000);
+                
+                // Send 9 "Zeroes" then send 1 true accelerometer value
+                if(HID_msg_counter > 8)
+                {
+                    appData.xCoordinate = (int8_t) (accelZ / 1000);
+                    appData.yCoordinate = (int8_t) (accelX / 1000);
+                    HID_msg_counter = 0;
+                }
+                else
+                {
+                    appData.xCoordinate = 0;
+                    appData.yCoordinate = 0;
+                    ++HID_msg_counter;
+                }
 
                 movement_length = 0;
             }
