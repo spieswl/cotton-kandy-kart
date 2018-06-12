@@ -251,6 +251,14 @@ void APP_Initialize ( void );
 void APP_Tasks( void );
 
 
+// Global variables
+static volatile int RxVal;
+
+static volatile int RW_vel;
+static volatile int LW_vel;
+static int Kp;
+
+
 #endif /* _APP_H */
 
 //DOM-IGNORE-BEGIN

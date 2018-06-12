@@ -98,7 +98,9 @@ extern "C" {
 #define SYS_PORT_B_CNPU         0x0
 #define SYS_PORT_B_CNPD         0x0
 #define SYS_PORT_B_CNEN         0x0
-
+    
+/*** Controller Definitions ***/
+#define MAX_DUTY                2499
 
 // *****************************************************************************
 // *****************************************************************************

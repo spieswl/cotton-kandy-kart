@@ -58,7 +58,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private TextureView camTextureView;
     private SurfaceView camSurfaceView;
     private SurfaceHolder camSurfaceHolder;
-    private Bitmap bmp = Bitmap.createBitmap(800, 600, Bitmap.Config.ARGB_8888);
+    private Bitmap bmp = Bitmap.createBitmap(640, 480, Bitmap.Config.ARGB_8888);
     private Canvas canvas = new Canvas(bmp);
     private Paint paint1 = new Paint();
     private TextView camTextView;
@@ -175,44 +175,36 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         camTextureView.getBitmap(bmp);
 
         final Canvas c = camSurfaceHolder.lockCanvas();
-        int COM = 0;
         int lineLoc = 0;
 
         if (c != null) {
-            int[] pixels = new int[bmp.getWidth()];                             // pixels[] is the RGBA data
-            int startY = 230;                                                   // which row in the bitmap to analyze to read
-            int endY = 250;
+            int[] pixels = new int[bmp.getWidth()];                         // pixels[] is the RGBA data
+            int row = 240;                                                  // Measure at the center row
 
-            for (int row = startY; row < endY; row += 1)
-            {
-                bmp.getPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
+            bmp.getPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
 
-                int sum_mr = 0;                                                 // the sum of the mass times the radius
-                int sum_m = 0;                                                  // the sum of the masses
+            int sum_mr = 0;                                                 // the sum of the mass times the radius
+            int sum_m = 0;                                                  // the sum of the masses
 
-                for (int i = 0; i < bmp.getWidth(); i++) {
-                    if((((red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) > -redThreshold) && (red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) < redThreshold) && (red(pixels[i]) > redAlpha)) {
-                        pixels[i] = rgb(255, 0, 0);              // set the pixel to 100% red
-
-                        sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
-                        sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
-                    }
-                }
-                // only use the data if there were a few pixels identified, otherwise you might get a divide by 0 error
-                if (sum_m > 5) {
-                    COM = sum_mr / sum_m;
-                }
-                else {
-                    COM = 240;                                                  // Assume COM is center (this will be averaged out)
+            for (int i = 0; i < bmp.getWidth(); i++) {
+                if((((red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) > -redThreshold) && (red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) < redThreshold) && (red(pixels[i]) > redAlpha)) {
+                    pixels[i] = rgb(1, 1, 1);                // set the pixel to near black
                 }
 
-                // Update the row
-                bmp.setPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
-
-                lineLoc += COM;
+                sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
+                sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
             }
 
-            lineLoc = lineLoc / 20;
+            // only use the data if there were a few pixels identified, otherwise you might get a divide by 0 error
+            if (sum_m > 5) {
+                lineLoc = sum_mr / sum_m;
+            }
+            else {
+                lineLoc = 0;                                                  // Assume COM is center (this will be averaged out)
+            }
+
+            // Update the row
+            bmp.setPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
         }
 
         // Send the COM value over the USB port to the microcontroller
@@ -222,7 +214,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         } catch (IOException e) { }
 
         // Draw a circle at the COM
-        canvas.drawCircle(lineLoc, 240, 5, paint1);                        // x position, y position, diameter, color
+        canvas.drawCircle(lineLoc, 240, 10, paint1);                        // x position, y position, diameter, color
 
         // Update the bitmap
         c.drawBitmap(bmp, 0, 0, null);

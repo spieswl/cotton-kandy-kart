@@ -71,10 +71,6 @@ int startTime = 0;
 char Rx[64];
 int RxLen = 0;
 int gotRx = 0;
-int RxVal = 0;
-
-int RW_vel = 0;
-int LW_vel = 0;
 
 /* Application Data
 
@@ -173,7 +169,7 @@ USB_DEVICE_CDC_EVENT_RESPONSE APP_USBDeviceCDCEventHandler
 
         case USB_DEVICE_CDC_EVENT_CONTROL_TRANSFER_DATA_SENT:
 
-            /* This means the GET LINE CODING function data is valid. We dont
+            /* This means the GET LINE CODING function data is valid. We don't
              * do much with this data in this demo. */
             break;
 
@@ -201,7 +197,7 @@ void APP_USBDeviceEventHandler(USB_DEVICE_EVENT event, void * eventData, uintptr
     switch (event) {
         case USB_DEVICE_EVENT_SOF:
 
-            /* This event is used for switch debounce. This flag is reset
+            /* This event is used for switch debouncing. This flag is reset
              * by the switch process routine. */
             appData.sofEventHasOccurred = true;
             break;
@@ -340,6 +336,13 @@ void APP_Initialize(void) {
     // *************************************************************************
 
     startTime = _CP0_GET_COUNT();
+    
+    // Initial controller setup
+    RxVal = 0;
+
+    RW_vel = 0;
+    LW_vel = 0;
+    Kp = 1.0;
     
     // Output Compare configuration
     RPA0Rbits.RPA0R = 0b0101;   // A0 to OC1
