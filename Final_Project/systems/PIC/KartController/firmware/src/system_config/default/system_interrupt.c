@@ -79,19 +79,19 @@ void __ISR(_USB_1_VECTOR, ipl4AUTO) _IntHandlerUSBInstance0(void)
 void __ISR(_TIMER_4_VECTOR, IPL4SOFT) Timer4ISR(void)
 {
     // PI Controller code
-    int vel_error = RxVal - 240;    // 240 means the dot is in the middle of the screen
+    vel_err = RxVal - 320;          // 320 means the dot is in the middle of the screen
     
-    if (vel_error < 0)              // slow down the left motor to steer to the left
+    if (vel_err < 0)                // slow down the left motor to steer to the left
     {
-        vel_error  = -(vel_error);
-        LW_vel = MAX_DUTY - (Kp * vel_error);
+        vel_err  = -(vel_err);
+        LW_vel = MAX_DUTY - (int) ((Kp * vel_err));
         RW_vel = MAX_DUTY;
         
         if (LW_vel < 0) { LW_vel = 0; }
     }
     else                            // slow down the right motor to steer to the right
     {
-        RW_vel = MAX_DUTY - (Kp * vel_error);
+        RW_vel = MAX_DUTY - (int) ((Kp * vel_err));
         LW_vel = MAX_DUTY;
         
         if (RW_vel < 0) { RW_vel = 0; }

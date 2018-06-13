@@ -214,7 +214,6 @@ typedef struct
   Remarks:
     This routine must be called from the SYS_Initialize function.
 */
-
 void APP_Initialize ( void );
 
 
@@ -247,17 +246,15 @@ void APP_Initialize ( void );
   Remarks:
     This routine must be called from SYS_Tasks() routine.
  */
-
 void APP_Tasks( void );
 
-
 // Global variables
-static volatile int RxVal;
+volatile int RxVal;
 
-static volatile int RW_vel;
-static volatile int LW_vel;
-static int Kp;
-
+signed int vel_err;
+volatile int RW_vel;
+volatile int LW_vel;
+float Kp;
 
 #endif /* _APP_H */
 

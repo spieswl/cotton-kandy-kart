@@ -100,6 +100,7 @@ extern "C" {
 #define SYS_PORT_B_CNEN         0x0
     
 /*** Controller Definitions ***/
+// WARNING: DO NOT INCREASE MAX_DUTY BEYOND 2499
 #define MAX_DUTY                2499
 
 // *****************************************************************************
