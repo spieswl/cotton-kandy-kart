@@ -46,10 +46,11 @@
                 android:id="@+id/rThresh"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:progress="20"
-                android:secondaryProgress="100"
+                android:progress="80"
+                android:secondaryProgress="80"
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
+                android:max="255"
                 />
 
             <TextView
@@ -64,10 +65,11 @@
                 android:id="@+id/rAlpha"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:progress="20"
-                android:secondaryProgress="100"
+                android:progress="25"
+                android:secondaryProgress="25"
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
+                android:max="255"
                 />
 
             <TextureView

@@ -66,8 +66,8 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private SeekBar camRedAlpha;
 
     static long prevtime = 0;                                                   // for FPS calculation
-    static int redThreshold = 0;
-    static int redAlpha = 0;
+    static int redThreshold = 80;
+    static int redAlpha = 20;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -179,41 +179,49 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
         if (c != null) {
             int[] pixels = new int[bmp.getWidth()];                         // pixels[] is the RGBA data
-            int row = 240;                                                  // Measure at the center row
+            int start_Y = 230;
+            int end_Y = 250;
 
-            bmp.getPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
+            int COM = 0;
 
-            int sum_mr = 0;                                                 // the sum of the mass times the radius
-            int sum_m = 0;                                                  // the sum of the masses
+            for (int row = start_Y; row < end_Y; row++)
+            {
+                int sum_mass_red = 0;                                       // the sum of the mass times the radius
+                int sum_mass = 0;                                           // the sum of the masses
 
-            for (int i = 0; i < bmp.getWidth(); i++) {
-                if((((red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) > -redThreshold) && (red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) < redThreshold) && (red(pixels[i]) > redAlpha)) {
-                    pixels[i] = rgb(1, 1, 1);                // set the pixel to near black
+                bmp.getPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
+
+                for (int i = 0; i < bmp.getWidth(); i++) {
+                    if ((((red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) > -redThreshold) && (red(pixels[i]) - (green(pixels[i]) + blue(pixels[i])) / 2) < redThreshold) && (red(pixels[i]) > redAlpha)) {
+                        pixels[i] = rgb(1, 1, 1);                // set the pixel to near black
+                    }
+
+                    sum_mass = sum_mass + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
+                    sum_mass_red = sum_mass_red + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
                 }
 
-                sum_m = sum_m + green(pixels[i]) + red(pixels[i]) + blue(pixels[i]);
-                sum_mr = sum_mr + (green(pixels[i]) + red(pixels[i]) + blue(pixels[i])) * i;
+                // Only use the data if there were a few pixels identified, otherwise you might get a divide by 0 error
+                if (sum_mass > 5)  { COM = sum_mass_red / sum_mass; }
+                else               { COM = 0; }
+
+                // Update the row
+                bmp.setPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
+
+                // Update the line location COM
+                lineLoc += COM;
             }
 
-            // only use the data if there were a few pixels identified, otherwise you might get a divide by 0 error
-            if (sum_m > 5) {
-                lineLoc = sum_mr / sum_m;
-            }
-            else {
-                lineLoc = 0;                                                  // Assume COM is center (this will be averaged out)
-            }
-
-            // Update the row
-            bmp.setPixels(pixels, 0, bmp.getWidth(), 0, row, bmp.getWidth(), 1);
+            // After accruing the values for line location COM across all rows, divide by number of rows
+            lineLoc = lineLoc / (end_Y - start_Y);
         }
 
-        // Send the COM value over the USB port to the microcontroller
+        // Send the line location value over the USB port to the microcontroller
         String sendString = String.valueOf(lineLoc) + '\n';
         try {
             sPort.write(sendString.getBytes(), 10); // 10 is the timeout
         } catch (IOException e) { }
 
-        // Draw a circle at the COM
+        // Draw a circle at the line location
         canvas.drawCircle(lineLoc, 240, 10, paint1);                        // x position, y position, diameter, color
 
         // Update the bitmap
